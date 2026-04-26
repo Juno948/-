@@ -1,0 +1,15 @@
+{
+  "short_name": "KCAL",
+  "name": "AI 칼로리 분석기",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f0f0f",
+  "theme_color": "#0f0f0f",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
