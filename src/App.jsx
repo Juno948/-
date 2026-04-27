@@ -271,7 +271,7 @@ const WorkoutTab = ({ workoutHistory, setWorkoutHistory, saveWorkoutHistory }) =
     setPasteLoading(true); setPasteError(null); setParsedWorkouts(null);
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", "x-api-key": process.env.REACT_APP_ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514", max_tokens: 1000,
           messages: [{ role: "user", content: `다음은 사용자가 메모장에 적어둔 운동 기록입니다. 이걸 분석해서 반드시 JSON 배열 형식으로만 응답하세요. 다른 텍스트나 마크다운은 절대 포함하지 마세요.
@@ -689,7 +689,7 @@ export default function App() {
     setLoading(true); setError(null);
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", "x-api-key": process.env.REACT_APP_ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514", max_tokens: 1000,
           messages: [{ role: "user", content: [
