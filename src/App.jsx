@@ -271,7 +271,7 @@ const WorkoutTab = ({ workoutHistory, setWorkoutHistory, saveWorkoutHistory }) =
     setPasteLoading(true); setPasteError(null); setParsedWorkouts(null);
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers: { "Content-Type": "application/json", "x-api-key": process.env.REACT_APP_ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514", max_tokens: 1000,
           messages: [{ role: "user", content: `다음은 사용자가 메모장에 적어둔 운동 기록입니다. 이걸 분석해서 반드시 JSON 배열 형식으로만 응답하세요. 다른 텍스트나 마크다운은 절대 포함하지 마세요.
@@ -650,8 +650,11 @@ export default function App() {
   const [dragOver, setDragOver]   = useState(false);
   const [foodHistory, setFoodHistory]       = useState([]);
   const [workoutHistory, setWorkoutHistory] = useState([]);
-  const [view, setView]           = useState("upload"); // upload|result|history|workout
+  const [view, setView]           = useState("upload");
   const [selectedDay, setSelectedDay] = useState(null);
+  const [apiKey, setApiKey]       = useState("");
+  const [apiKeyInput, setApiKeyInput] = useState("");
+  const [showKeySetup, setShowKeySetup] = useState(false);
   const fileRef = useRef();
 
   useEffect(() => {
@@ -664,8 +667,17 @@ export default function App() {
         const w = await window.storage.get(WORKOUT_KEY);
         if (w?.value) setWorkoutHistory(JSON.parse(w.value));
       } catch (_) {}
+      const savedKey = localStorage.getItem("anthropic-api-key");
+      if (savedKey) setApiKey(savedKey);
     })();
   }, []);
+
+  const saveApiKey = () => {
+    const k = apiKeyInput.trim();
+    if (!k.startsWith("sk-ant-")) { alert("올바른 API 키를 입력해주세요 (sk-ant-로 시작)"); return; }
+    localStorage.setItem("anthropic-api-key", k);
+    setApiKey(k); setShowKeySetup(false); setApiKeyInput("");
+  };
 
   const saveFoodHistory = async (h) => {
     try { await window.storage.set(FOOD_KEY, JSON.stringify(h)); } catch (_) {}
@@ -689,7 +701,7 @@ export default function App() {
     setLoading(true); setError(null);
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers: { "Content-Type": "application/json", "x-api-key": process.env.REACT_APP_ANTHROPIC_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        method: "POST", headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({
           model: "claude-sonnet-4-20250514", max_tokens: 1000,
           messages: [{ role: "user", content: [
@@ -751,7 +763,57 @@ export default function App() {
       <div style={{ borderBottom: `1px solid ${C.border}`, padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
         <div style={{ background: C.accent, color: "#000", fontWeight: 700, fontSize: 11, padding: "3px 8px", letterSpacing: 2 }}>KCAL</div>
         <div style={{ fontSize: 16, fontWeight: 600, letterSpacing: -0.5 }}>AI 칼로리 분석기</div>
+        <button onClick={() => setShowKeySetup(s => !s)} title="API 키 설정"
+          style={{ marginLeft: "auto", background: apiKey ? "#1a2600" : "#2a1010", border: `1px solid ${apiKey ? C.accentDim : C.danger}`, color: apiKey ? C.accent : C.danger, borderRadius: 6, padding: "5px 10px", fontFamily: "inherit", fontSize: 11, cursor: "pointer" }}>
+          {apiKey ? "🔑 키 설정됨" : "🔑 키 필요"}
+        </button>
       </div>
+
+      {/* API Key Setup Panel */}
+      {showKeySetup && (
+        <div style={{ background: "#1a1000", borderBottom: `1px solid #3a2800`, padding: "16px 24px" }}>
+          <div style={{ fontSize: 13, color: C.orange, marginBottom: 10, fontWeight: 600 }}>🔑 Anthropic API 키 입력</div>
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>
+            console.anthropic.com에서 발급받은 키를 입력하세요.<br/>키는 이 기기에만 저장되고 외부로 전송되지 않아요.
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              type="password"
+              value={apiKeyInput}
+              onChange={e => setApiKeyInput(e.target.value)}
+              placeholder="sk-ant-..."
+              style={{ flex: 1, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, color: C.text, fontFamily: "inherit", fontSize: 13, padding: "10px 12px", outline: "none" }}
+              onFocus={e => e.target.style.borderColor = C.accent}
+              onBlur={e => e.target.style.borderColor = C.border}
+              onKeyDown={e => e.key === "Enter" && saveApiKey()}
+            />
+            <button onClick={saveApiKey}
+              style={{ background: C.accent, color: "#000", border: "none", borderRadius: 6, padding: "10px 18px", fontFamily: "inherit", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>
+              저장
+            </button>
+          </div>
+          {apiKey && (
+            <div style={{ marginTop: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 11, color: C.accent }}>✅ 현재 키: {apiKey.slice(0,16)}...</span>
+              <button onClick={() => { localStorage.removeItem("anthropic-api-key"); setApiKey(""); setShowKeySetup(false); }}
+                style={{ background: "transparent", border: `1px solid #3a1010`, color: C.danger, fontFamily: "inherit", fontSize: 11, padding: "3px 10px", borderRadius: 4, cursor: "pointer" }}>
+                키 삭제
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* No key warning */}
+      {!apiKey && !showKeySetup && (
+        <div style={{ background: "#2a1010", borderBottom: `1px solid #4a2020`, padding: "10px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: 12, color: C.danger }}>⚠️ API 키를 먼저 입력해야 분석이 가능해요</span>
+          <button onClick={() => setShowKeySetup(true)}
+            style={{ background: C.danger, color: "#fff", border: "none", borderRadius: 4, padding: "4px 12px", fontFamily: "inherit", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            입력하기
+          </button>
+        </div>
+      )}
 
       {/* Today summary bar */}
       {(todayFoodTotal > 0 || todayBurned > 0) && (
